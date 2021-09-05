@@ -43,12 +43,39 @@ o	PostgreSQL
 **The purpose of this work is to extract the dataset from an AWS S3 using PySpark to transform it and load it to AWS again as our first step in our process analysis. We pulled the data and  downloaded it as the file was a jupyter notebook file, but it was created in Google Colab for PySpark to run.**
 
 
+
+
+
+
 TABLA 1
+
+<img width="623" alt="Amazon analisis" src="https://user-images.githubusercontent.com/81654454/132138655-fbfb4c5e-4761-4f77-b61b-6b88508125d7.PNG">
+
+
+
+
 
 
 TABLA 2
 
+
+
+<img width="634" alt="Amazo 2" src="https://user-images.githubusercontent.com/81654454/132138658-a54a1da1-14cc-4aaf-be33-f148e80ab2c9.PNG">
+
+
+
+
 TABLA 3
+
+<img width="590" alt="Amazon 3" src="https://user-images.githubusercontent.com/81654454/132138662-dc174ad2-90ac-447f-8d49-3067b8fe533e.PNG">
+
+
+
+
+
+<img width="629" alt="Amazon 4" src="https://user-images.githubusercontent.com/81654454/132138667-2f571558-f4e6-4be8-b14d-6504f4979e71.PNG">
+
+
 
 
 QUERY 1
