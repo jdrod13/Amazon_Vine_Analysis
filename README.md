@@ -102,7 +102,14 @@ o	52.3% of unpaid reviews were 5-star
 
 
 
-Ultimas tablas
+
+
+
+
+
+<img width="634" alt="Ama_further_analisis" src="https://user-images.githubusercontent.com/81654454/132138624-f8d5b6aa-e0e6-4f9c-9b2b-4917f53e69f2.PNG">
+
+
 
 
 
