@@ -80,13 +80,25 @@ TABLA 3
 
 QUERY 1
 
+
+
+<img width="575" alt="Amazon_Que 1" src="https://user-images.githubusercontent.com/81654454/132138715-b1b4c76d-3372-4816-b6db-acdd262134a4.PNG">
+
+
+
+
 QUERY 2
+
+<img width="580" alt="Amazonque 2" src="https://user-images.githubusercontent.com/81654454/132138721-ad3ed63d-d30e-4f6d-8ef7-e6a62ef8554a.PNG">
+
+
+
 
 
 QUERY 3
 
 
-
+<img width="606" alt="Amazon que 3" src="https://user-images.githubusercontent.com/81654454/132138726-50c4792e-ffdd-45cd-8aa7-0a45f7d79ef9.PNG">
 
 
 
