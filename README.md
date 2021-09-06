@@ -47,7 +47,7 @@ o	PostgreSQL
 
 
 
-TABLA 1
+
 
 <img width="623" alt="Amazon analisis" src="https://user-images.githubusercontent.com/81654454/132138655-fbfb4c5e-4761-4f77-b61b-6b88508125d7.PNG">
 
@@ -56,16 +56,13 @@ TABLA 1
 
 
 
-TABLA 2
-
-
 
 <img width="634" alt="Amazo 2" src="https://user-images.githubusercontent.com/81654454/132138658-a54a1da1-14cc-4aaf-be33-f148e80ab2c9.PNG">
 
 
 
 
-TABLA 3
+
 
 <img width="590" alt="Amazon 3" src="https://user-images.githubusercontent.com/81654454/132138662-dc174ad2-90ac-447f-8d49-3067b8fe533e.PNG">
 
@@ -78,7 +75,7 @@ TABLA 3
 
 
 
-QUERY 1
+
 
 
 
@@ -87,7 +84,7 @@ QUERY 1
 
 
 
-QUERY 2
+
 
 <img width="580" alt="Amazonque 2" src="https://user-images.githubusercontent.com/81654454/132138721-ad3ed63d-d30e-4f6d-8ef7-e6a62ef8554a.PNG">
 
