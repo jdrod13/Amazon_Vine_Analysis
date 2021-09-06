@@ -95,10 +95,20 @@ QUERY 2
 
 
 
-QUERY 3
 
 
 <img width="606" alt="Amazon que 3" src="https://user-images.githubusercontent.com/81654454/132138726-50c4792e-ffdd-45cd-8aa7-0a45f7d79ef9.PNG">
+
+
+
+
+
+
+
+<img width="609" alt="Amazon que 4" src="https://user-images.githubusercontent.com/81654454/132152486-4c88b689-d845-452c-8ea5-e05ed2715065.PNG">
+
+
+
 
 
 
