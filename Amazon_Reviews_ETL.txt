@@ -1,0 +1,594 @@
+nbformat: 4,
+nbformat_minor: 2,
+metadata: {
+colab: {
+name: "Amazon_Reviews_ETL.ipynb",
+provenance: [ ],
+collapsed_sections: [ ]
+},
+kernelspec: {
+name: "python3",
+display_name: "Python 3"
+},
+nteract: {
+version: "0.12.3"
+},
+language_info: {
+name: "python"
+}
+},
+cells: [
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"import os ",
+"# Find the latest version of spark 3.0 from http://www.apache.org/dist/spark/ and enter as the spark version ",
+"# For example: ",
+"# spark_version = 'spark-3.0.3' ",
+"spark_version = 'spark-3.0.3' ",
+"os.environ['SPARK_VERSION']=spark_version ",
+" ",
+"# Install Spark and Java ",
+"!apt-get update ",
+"!apt-get install openjdk-11-jdk-headless -qq > /dev/null ",
+"!wget -q http://www.apache.org/dist/spark/$SPARK_VERSION/$SPARK_VERSION-bin-hadoop2.7.tgz ",
+"!tar xf $SPARK_VERSION-bin-hadoop2.7.tgz ",
+"!pip install -q findspark ",
+" ",
+"# Set Environment Variables ",
+"import os ",
+"os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-11-openjdk-amd64" ",
+"os.environ["SPARK_HOME"] = f"/content/{spark_version}-bin-hadoop2.7" ",
+" ",
+"# Start a SparkSession ",
+"import findspark ",
+"findspark.init()"
+],
+outputs: [
+{
+output_type: "stream",
+name: "stdout",
+text: [
+" 0% [Working] Get:1 https://cloud.r-project.org/bin/linux/ubuntu bionic-cran40/ InRelease [3,626 B] ",
+" 0% [Connecting to archive.ubuntu.com (91.189.88.142)] [Connecting to security.u 0% [Connecting to archive.ubuntu.com (91.189.88.142)] [Connecting to security.u Ign:2 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 InRelease ",
+" 0% [Connecting to archive.ubuntu.com (91.189.88.142)] [Connecting to security.u 0% [1 InRelease gpgv 3,626 B] [Connecting to archive.ubuntu.com (91.189.88.142) Ign:3 https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 InRelease ",
+"Hit:4 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 Release ",
+"Hit:5 https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 Release ",
+"Get:6 http://security.ubuntu.com/ubuntu bionic-security InRelease [88.7 kB] ",
+"Hit:7 http://archive.ubuntu.com/ubuntu bionic InRelease ",
+"Hit:8 http://ppa.launchpad.net/c2d4u.team/c2d4u4.0+/ubuntu bionic InRelease ",
+"Get:9 http://archive.ubuntu.com/ubuntu bionic-updates InRelease [88.7 kB] ",
+"Get:10 https://cloud.r-project.org/bin/linux/ubuntu bionic-cran40/ Packages [66.6 kB] ",
+"Hit:11 http://ppa.launchpad.net/cran/libgit2/ubuntu bionic InRelease ",
+"Hit:12 http://ppa.launchpad.net/deadsnakes/ppa/ubuntu bionic InRelease ",
+"Get:14 http://archive.ubuntu.com/ubuntu bionic-backports InRelease [74.6 kB] ",
+"Get:15 http://ppa.launchpad.net/graphics-drivers/ppa/ubuntu bionic InRelease [21.3 kB] ",
+"Get:17 http://security.ubuntu.com/ubuntu bionic-security/universe amd64 Packages [1,426 kB] ",
+"Get:18 http://security.ubuntu.com/ubuntu bionic-security/main amd64 Packages [2,294 kB] ",
+"Get:19 http://archive.ubuntu.com/ubuntu bionic-updates/main amd64 Packages [2,730 kB] ",
+"Get:20 http://ppa.launchpad.net/graphics-drivers/ppa/ubuntu bionic/main amd64 Packages [41.6 kB] ",
+"Get:21 http://archive.ubuntu.com/ubuntu bionic-updates/universe amd64 Packages [2,199 kB] ",
+"Fetched 9,034 kB in 4s (2,470 kB/s) ",
+"Reading package lists... Done "
+]
+}
+],
+metadata: {
+id: "V58rxea0HqSa",
+colab: {
+base_uri: "https://localhost:8080/"
+},
+outputId: "ceeb722b-fccf-46b1-e7fd-9625a35d636a"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"# Download the Postgres driver that will allow Spark to interact with Postgres. ",
+"!wget https://jdbc.postgresql.org/download/postgresql-42.2.16.jar"
+],
+outputs: [
+{
+output_type: "stream",
+name: "stdout",
+text: [
+"--2021-08-30 00:35:20-- https://jdbc.postgresql.org/download/postgresql-42.2.16.jar ",
+"Resolving jdbc.postgresql.org (jdbc.postgresql.org)... 72.32.157.228, 2001:4800:3e1:1::228 ",
+"Connecting to jdbc.postgresql.org (jdbc.postgresql.org)|72.32.157.228|:443... connected. ",
+"HTTP request sent, awaiting response... 200 OK ",
+"Length: 1002883 (979K) [application/java-archive] ",
+"Saving to: ‘postgresql-42.2.16.jar’ ",
+" ",
+"postgresql-42.2.16. 100%[===================>] 979.38K 4.17MB/s in 0.2s ",
+" ",
+"2021-08-30 00:35:20 (4.17 MB/s) - ‘postgresql-42.2.16.jar’ saved [1002883/1002883] ",
+" "
+]
+}
+],
+metadata: {
+id: "_xKwTpATHqSe",
+colab: {
+base_uri: "https://localhost:8080/"
+},
+outputId: "6aad08b8-c276-47e8-b4b2-87b534f75bbb"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"from pyspark.sql import SparkSession ",
+"spark = SparkSession.builder.appName("M16-Amazon-Challenge").config("spark.driver.extraClassPath","/content/postgresql-42.2.16.jar").getOrCreate()"
+],
+outputs: [ ],
+metadata: {
+id: "MMqDAjVS0KN9"
+}
+},
+{
+cell_type: "markdown",
+source: [
+"### Load Amazon Data into Spark DataFrame"
+],
+metadata: {
+id: "cyBsySGuY-9V"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"from pyspark import SparkFiles ",
+"url = "https://s3.amazonaws.com/amazon-reviews-pds/tsv/amazon_reviews_us_Apparel_v1_00.tsv.gz" ",
+"spark.sparkContext.addFile(url) ",
+"df = spark.read.option("encoding", "UTF-8").csv(SparkFiles.get("amazon_reviews_us_Apparel_v1_00.tsv.gz"), sep="\t", header=True, inferSchema=True) ",
+"df.show()"
+],
+outputs: [
+{
+output_type: "stream",
+name: "stdout",
+text: [
+"+-----------+-----------+--------------+----------+--------------+--------------------+----------------+-----------+-------------+-----------+----+-----------------+--------------------+--------------------+-----------+ ",
+"|marketplace|customer_id| review_id|product_id|product_parent| product_title|product_category|star_rating|helpful_votes|total_votes|vine|verified_purchase| review_headline| review_body|review_date| ",
+"+-----------+-----------+--------------+----------+--------------+--------------------+----------------+-----------+-------------+-----------+----+-----------------+--------------------+--------------------+-----------+ ",
+"| US| 32158956|R1KKOXHNI8MSXU|B01KL6O72Y| 24485154|Easy Tool Stainle...| Apparel| 4| 0| 0| N| Y|★ THESE REALLY DO...|These Really Do W...| 2013-01-14| ",
+"| US| 2714559|R26SP2OPDK4HT7|B01ID3ZS5W| 363128556|V28 Women Cowl Ne...| Apparel| 5| 1| 2| N| Y|Favorite for wint...|I love this dress...| 2014-03-04| ",
+"| US| 12608825| RWQEDYAX373I1|B01I497BGY| 811958549|James Fiallo Men'...| Apparel| 5| 0| 0| N| Y|Great Socks for t...|Nice socks, great...| 2015-07-12| ",
+"| US| 25482800|R231YI7R4GPF6J|B01HDXFZK6| 692205728|Belfry Gangster 1...| Apparel| 5| 0| 0| N| Y| Slick hat!|I bought this for...| 2015-06-03| ",
+"| US| 9310286|R3KO3W45DD0L1K|B01G6MBEBY| 431150422|JAEDEN Women's Be...| Apparel| 5| 0| 0| N| Y|I would do it again!|Perfect dress and...| 2015-06-12| ",
+"| US| 26631939|R1C4QH63NFL5NJ|B01FWRXN0Y| 366144407|Levi's Boys' 514 ...| Apparel| 5| 0| 0| N| Y| Five Stars|Excellent for my ...| 2014-04-22| ",
+"| US| 48785098|R2GP65O1U9N7BP|B01EXNH1HE| 786052021|Minimalist Wallet...| Apparel| 5| 0| 0| N| Y| Love it!|Raw is the only w...| 2015-07-28| ",
+"| US| 39548589|R3O29CT5MQQ3XQ|B01E7OL09O| 108920964|Harriton Men's Ba...| Apparel| 4| 0| 0| N| Y| Three Stars| A bit large.| 2015-07-10| ",
+"| US| 29355866|R1ZECD2AA8QFF6|B01DXHX81O| 317132458|Jockey Women's Un...| Apparel| 5| 0| 0| N| Y| Five Stars| Great fit!| 2015-08-09| ",
+"| US| 27477484|R2S79GCF6J89OA|B01DDULIJK| 110598191|Alexander Del Ros...| Apparel| 3| 0| 0| N| Y| Not my favorite.|Shirt a bit too l...| 2014-05-24| ",
+"| US| 17685865|R1CBCUGNP37MPK|B01BOKOL4A| 121408017|Jockey Women's Un...| Apparel| 5| 0| 0| N| Y|The Jockey Women'...|The Jockey Women'...| 2015-06-10| ",
+"| US| 19787539|R3NU4WUR5ZNV1V|B01B3Q4Q0O| 134506082|Bali Passion For ...| Apparel| 5| 0| 0| N| Y| Five Stars|cup size is just ...| 2013-09-06| ",
+"| US| 44196725|R32EPCJ3XF8LGE|B01ADDSL9U| 747539045|Lilyette Women's ...| Apparel| 5| 0| 0| N| Y| Five Stars| Perfect...| 2014-11-17| ",
+"| US| 45510794|R1XIBC6WQBW31M|B019P1X5XI| 696379847|Vanity Fair Women...| Apparel| 5| 0| 0| N| Y|best ever4 for me...|best ever4 for m...| 2013-05-12| ",
+"| US| 42025740|R1P11MVDZ65LMH|B019MDXIXG| 387286513|Warner's Women's ...| Apparel| 5| 0| 0| N| Y| Five Stars| Great fit.| 2014-02-14| ",
+"| US| 27097189|R1OJA3DJL0VDDK|B019438FEG| 764190574|Columbia Women's ...| Apparel| 5| 0| 0| N| Y| Five Stars|I have this Colum...| 2014-10-20| ",
+"| US| 13808904|R1THWA5YRJLOOF|B0178HGNIA| 816266887|Robes King RK Cla...| Apparel| 4| 0| 0| N| Y| Four Stars|My husband found ...| 2015-07-05| ",
+"| US| 30225894| R738LCNRSJVXP|B016VIU0QI| 323924698|VIV Collection Be...| Apparel| 5| 6| 7| N| Y| Awesome leggings!|Awesome leggings!...| 2015-07-29| ",
+"| US| 45223824|R1N3Z13931J3O9|B016PUU3VO| 893588059|Fruit of the Loom...| Apparel| 2| 0| 0| N| Y|Sizes not correct...|I ordered the sam...| 2015-01-01| ",
+"| US| 22300783|R1LBNTP7E8N89Z|B016AQNDM4| 917361125|Jockey Scrubs Wom...| Apparel| 1| 0| 0| N| Y| One Star| not exact in sizing| 2015-02-12| ",
+"+-----------+-----------+--------------+----------+--------------+--------------------+----------------+-----------+-------------+-----------+----+-----------------+--------------------+--------------------+-----------+ ",
+"only showing top 20 rows ",
+" "
+]
+}
+],
+metadata: {
+id: "CtCmBhQJY-9Z",
+colab: {
+base_uri: "https://localhost:8080/"
+},
+outputId: "e3177036-55e0-4022-bf8e-5c3111303e00"
+}
+},
+{
+cell_type: "markdown",
+source: [
+"### Create DataFrames to match tables"
+],
+metadata: {
+id: "2yUSe55VY-9t"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"from pyspark.sql.functions import to_date ",
+"# Read in the Review dataset as a DataFrame ",
+"df.printSchema()"
+],
+outputs: [
+{
+output_type: "stream",
+name: "stdout",
+text: [
+"root ",
+" |-- marketplace: string (nullable = true) ",
+" |-- customer_id: integer (nullable = true) ",
+" |-- review_id: string (nullable = true) ",
+" |-- product_id: string (nullable = true) ",
+" |-- product_parent: integer (nullable = true) ",
+" |-- product_title: string (nullable = true) ",
+" |-- product_category: string (nullable = true) ",
+" |-- star_rating: integer (nullable = true) ",
+" |-- helpful_votes: integer (nullable = true) ",
+" |-- total_votes: integer (nullable = true) ",
+" |-- vine: string (nullable = true) ",
+" |-- verified_purchase: string (nullable = true) ",
+" |-- review_headline: string (nullable = true) ",
+" |-- review_body: string (nullable = true) ",
+" |-- review_date: string (nullable = true) ",
+" "
+]
+}
+],
+metadata: {
+id: "C8REmY1aY-9u",
+colab: {
+base_uri: "https://localhost:8080/"
+},
+outputId: "f43365e4-36f1-491c-dcb8-73279db2c89a"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"# Create the customers_table DataFrame ",
+"customers_df = df.groupby("customer_id").count().withColumnRenamed("count","customer_count") ",
+"customers_df.show() "
+],
+outputs: [
+{
+output_type: "stream",
+name: "stdout",
+text: [
+"+-----------+--------------+ ",
+"|customer_id|customer_count| ",
+"+-----------+--------------+ ",
+"| 13780696| 1| ",
+"| 48489393| 8| ",
+"| 43380682| 1| ",
+"| 17133428| 1| ",
+"| 9731896| 2| ",
+"| 1797768| 1| ",
+"| 27446622| 1| ",
+"| 120706| 3| ",
+"| 15915947| 2| ",
+"| 37520920| 1| ",
+"| 43920023| 9| ",
+"| 14309190| 8| ",
+"| 22316505| 1| ",
+"| 43949054| 2| ",
+"| 21102747| 1| ",
+"| 19021463| 1| ",
+"| 16075459| 8| ",
+"| 51475782| 2| ",
+"| 11555870| 5| ",
+"| 35471383| 3| ",
+"+-----------+--------------+ ",
+"only showing top 20 rows ",
+" "
+]
+}
+],
+metadata: {
+id: "B0TESUDRY-90",
+colab: {
+base_uri: "https://localhost:8080/"
+},
+outputId: "02eb604e-7325-4298-8641-569cbf379420"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"# Create the products_table DataFrame and drop duplicates. ",
+"products_df = df.select(["product_id","product_title"]).drop_duplicates() ",
+"products_df.show() "
+],
+outputs: [
+{
+output_type: "stream",
+name: "stdout",
+text: [
+"+----------+--------------------+ ",
+"|product_id| product_title| ",
+"+----------+--------------------+ ",
+"|B01427DDXM|Zoozie LA Women's...| ",
+"|B013TPITFA|Tabeez Women's Pl...| ",
+"|B013FU4Y9E|Ekouaer Women's U...| ",
+"|B013FNK6PC|Ezcosplay Women O...| ",
+"|B013FACXVK|Womens Two Piece ...| ",
+"|B013DHKQ3W|OURS Women's 3 4 ...| ",
+"|B0131D4NKU|Genie Women's Jeg...| ",
+"|B0131CA9K4|BeWild Brand - Ju...| ",
+"|B0130ZDFTE|Flora&Fred Women'...| ",
+"|B012Y665WY|AW Fashion's I Ne...| ",
+"|B012X0G1KW|KAMACO Women's Se...| ",
+"|B012VOPU84|iLoveSIA Women's ...| ",
+"|B012UUEWZG|Harley-Davidson W...| ",
+"|B012LQU4CE|Women's Laced & L...| ",
+"|B012ERJSKO|Amoin Style Women...| ",
+"|B012ADLW92|Cocoship Retro 50...| ",
+"|B012980QUY|Sanwood® Cute Bab...| ",
+"|B0125V8SZK|OURS Women's Comf...| ",
+"|B0125M6TZ0|Modern Kiwi Solid...| ",
+"|B01254G39K|Alberto Cardinali...| ",
+"+----------+--------------------+ ",
+"only showing top 20 rows ",
+" "
+]
+}
+],
+metadata: {
+id: "4FwXA6UvY-96",
+colab: {
+base_uri: "https://localhost:8080/"
+},
+outputId: "ca42ccd9-ba12-498e-8a5e-f3989be5b10f"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"# Create the review_id_table DataFrame. ",
+"# Convert the 'review_date' column to a date datatype with to_date("review_date", 'yyyy-MM-dd').alias("review_date") ",
+"# review_id_df = df.select([, to_date("review_date", 'yyyy-MM-dd').alias("review_date")]) ",
+" ",
+"review_id_df = df.select(['review_id','customer_id','product_id','product_parent', to_date('review_date', 'yyyy-MM-dd').alias("review_date")]) ",
+"review_id_df.show()"
+],
+outputs: [
+{
+output_type: "stream",
+name: "stdout",
+text: [
+"+--------------+-----------+----------+--------------+-----------+ ",
+"| review_id|customer_id|product_id|product_parent|review_date| ",
+"+--------------+-----------+----------+--------------+-----------+ ",
+"|R1KKOXHNI8MSXU| 32158956|B01KL6O72Y| 24485154| 2013-01-14| ",
+"|R26SP2OPDK4HT7| 2714559|B01ID3ZS5W| 363128556| 2014-03-04| ",
+"| RWQEDYAX373I1| 12608825|B01I497BGY| 811958549| 2015-07-12| ",
+"|R231YI7R4GPF6J| 25482800|B01HDXFZK6| 692205728| 2015-06-03| ",
+"|R3KO3W45DD0L1K| 9310286|B01G6MBEBY| 431150422| 2015-06-12| ",
+"|R1C4QH63NFL5NJ| 26631939|B01FWRXN0Y| 366144407| 2014-04-22| ",
+"|R2GP65O1U9N7BP| 48785098|B01EXNH1HE| 786052021| 2015-07-28| ",
+"|R3O29CT5MQQ3XQ| 39548589|B01E7OL09O| 108920964| 2015-07-10| ",
+"|R1ZECD2AA8QFF6| 29355866|B01DXHX81O| 317132458| 2015-08-09| ",
+"|R2S79GCF6J89OA| 27477484|B01DDULIJK| 110598191| 2014-05-24| ",
+"|R1CBCUGNP37MPK| 17685865|B01BOKOL4A| 121408017| 2015-06-10| ",
+"|R3NU4WUR5ZNV1V| 19787539|B01B3Q4Q0O| 134506082| 2013-09-06| ",
+"|R32EPCJ3XF8LGE| 44196725|B01ADDSL9U| 747539045| 2014-11-17| ",
+"|R1XIBC6WQBW31M| 45510794|B019P1X5XI| 696379847| 2013-05-12| ",
+"|R1P11MVDZ65LMH| 42025740|B019MDXIXG| 387286513| 2014-02-14| ",
+"|R1OJA3DJL0VDDK| 27097189|B019438FEG| 764190574| 2014-10-20| ",
+"|R1THWA5YRJLOOF| 13808904|B0178HGNIA| 816266887| 2015-07-05| ",
+"| R738LCNRSJVXP| 30225894|B016VIU0QI| 323924698| 2015-07-29| ",
+"|R1N3Z13931J3O9| 45223824|B016PUU3VO| 893588059| 2015-01-01| ",
+"|R1LBNTP7E8N89Z| 22300783|B016AQNDM4| 917361125| 2015-02-12| ",
+"+--------------+-----------+----------+--------------+-----------+ ",
+"only showing top 20 rows ",
+" "
+]
+}
+],
+metadata: {
+id: "MkqyCuNQY-9-",
+colab: {
+base_uri: "https://localhost:8080/"
+},
+outputId: "dd747940-4e1a-4023-bed7-2444de655e76"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"review_id_df.printSchema() #to check that the review_date column has the correct data type"
+],
+outputs: [
+{
+output_type: "stream",
+name: "stdout",
+text: [
+"root ",
+" |-- review_id: string (nullable = true) ",
+" |-- customer_id: integer (nullable = true) ",
+" |-- product_id: string (nullable = true) ",
+" |-- product_parent: integer (nullable = true) ",
+" |-- review_date: date (nullable = true) ",
+" "
+]
+}
+],
+metadata: {
+colab: {
+base_uri: "https://localhost:8080/"
+},
+id: "RUwLARTXrZb0",
+outputId: "10a5d891-8d7c-452c-b029-49221e6e97db"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"# Create the vine_table. DataFrame ",
+"vine_df = df.select(['review_id','star_rating','helpful_votes','total_votes','vine','verified_purchase']) ",
+"vine_df.show()"
+],
+outputs: [
+{
+output_type: "stream",
+name: "stdout",
+text: [
+"+--------------+-----------+-------------+-----------+----+-----------------+ ",
+"| review_id|star_rating|helpful_votes|total_votes|vine|verified_purchase| ",
+"+--------------+-----------+-------------+-----------+----+-----------------+ ",
+"|R1KKOXHNI8MSXU| 4| 0| 0| N| Y| ",
+"|R26SP2OPDK4HT7| 5| 1| 2| N| Y| ",
+"| RWQEDYAX373I1| 5| 0| 0| N| Y| ",
+"|R231YI7R4GPF6J| 5| 0| 0| N| Y| ",
+"|R3KO3W45DD0L1K| 5| 0| 0| N| Y| ",
+"|R1C4QH63NFL5NJ| 5| 0| 0| N| Y| ",
+"|R2GP65O1U9N7BP| 5| 0| 0| N| Y| ",
+"|R3O29CT5MQQ3XQ| 4| 0| 0| N| Y| ",
+"|R1ZECD2AA8QFF6| 5| 0| 0| N| Y| ",
+"|R2S79GCF6J89OA| 3| 0| 0| N| Y| ",
+"|R1CBCUGNP37MPK| 5| 0| 0| N| Y| ",
+"|R3NU4WUR5ZNV1V| 5| 0| 0| N| Y| ",
+"|R32EPCJ3XF8LGE| 5| 0| 0| N| Y| ",
+"|R1XIBC6WQBW31M| 5| 0| 0| N| Y| ",
+"|R1P11MVDZ65LMH| 5| 0| 0| N| Y| ",
+"|R1OJA3DJL0VDDK| 5| 0| 0| N| Y| ",
+"|R1THWA5YRJLOOF| 4| 0| 0| N| Y| ",
+"| R738LCNRSJVXP| 5| 6| 7| N| Y| ",
+"|R1N3Z13931J3O9| 2| 0| 0| N| Y| ",
+"|R1LBNTP7E8N89Z| 1| 0| 0| N| Y| ",
+"+--------------+-----------+-------------+-----------+----+-----------------+ ",
+"only showing top 20 rows ",
+" "
+]
+}
+],
+metadata: {
+id: "lzMmkdKmY--D",
+colab: {
+base_uri: "https://localhost:8080/"
+},
+outputId: "f4dc50c1-a437-4c81-d87b-e684cc7eb80c"
+}
+},
+{
+cell_type: "markdown",
+source: [
+"### Connect to the AWS RDS instance and write each DataFrame to its table. "
+],
+metadata: {
+id: "jITZhLkmY--J"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"from getpass import getpass ",
+" ",
+"password = getpass("Enter PgAdmin password")"
+],
+outputs: [
+{
+output_type: "stream",
+name: "stdout",
+text: [
+"Enter PgAdmin password·········· "
+]
+}
+],
+metadata: {
+colab: {
+base_uri: "https://localhost:8080/"
+},
+id: "enNKJAWysZIX",
+outputId: "cb945d55-4911-4dcd-d166-05fc0e21f777"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"# Configure settings for RDS ",
+"mode = "append" ",
+"jdbc_url="jdbc:postgresql://amazon-reviews.cmljxpkcvnbz.us-east-2.rds.amazonaws.com:5432/Vine_Reviews" ",
+"config = {"user":"postgres", ",
+" "password": password, ",
+" "driver":"org.postgresql.Driver"}"
+],
+outputs: [ ],
+metadata: {
+id: "7jiUvs1aY--L"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"# Write review_id_df to table in RDS ",
+"review_id_df.write.jdbc(url=jdbc_url, table='review_id_table', mode=mode, properties=config)"
+],
+outputs: [ ],
+metadata: {
+id: "T2zgZ-aKY--Q"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"# Write products_df to table in RDS ",
+"# about 3 min ",
+"products_df.write.jdbc(url=jdbc_url, table='products_table', mode=mode, properties=config)"
+],
+outputs: [ ],
+metadata: {
+id: "1m3yzn-LY--U"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"# Write customers_df to table in RDS ",
+"# 5 min 14 s ",
+"customers_df.write.jdbc(url=jdbc_url, table='customers_table', mode=mode, properties=config)"
+],
+outputs: [ ],
+metadata: {
+id: "KbXri15fY--Z"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [
+"# Write vine_df to table in RDS ",
+"# 11 minutes ",
+"vine_df.write.jdbc(url=jdbc_url, table='vine_table', mode=mode, properties=config)"
+],
+outputs: [ ],
+metadata: {
+id: "XdQknSHLY--e"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [ ],
+outputs: [ ],
+metadata: {
+id: "Exuo6ebUsCqW"
+}
+},
+{
+cell_type: "code",
+execution_count: null,
+source: [ ],
+outputs: [ ],
+metadata: {
+id: "HfGRKgrX5wcH"
+}
+}
+]
+}
